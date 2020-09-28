@@ -27,11 +27,11 @@ class Value:
 
     def __mul__(self, other: Union[int, float, "Value"]) -> "Value":
         other = other if isinstance(other, Value) else Value(other)
-        out = ...
+        out = Value(self.data * other.data, (self, other), "*")
 
         def _backward():
-            self.grad += ...
-            other.grad += ...
+            self.grad += other.data * out.grad
+            other.grad += self.data * out.grad
 
         out._backward = _backward
 
@@ -41,29 +41,29 @@ class Value:
         assert isinstance(
             other, (int, float)
         ), "only supporting int/float powers for now"
-        out = ...
+        out = Value(self.data**other, (self,), f'**{other}')
 
         def _backward():
-            self.grad += ...
+            self.grad += (other * self.data**(other-1)) * out.grad
 
         out._backward = _backward
 
         return out
 
     def exp(self):
-        out = ...
+        out = Value(np.exp(self.data), (self,), 'exp')
 
         def _backward():
-            self.grad += ...
+            self.grad += out.grad #производная экспоненты есть экспонента
 
         out._backward = _backward
         return out
 
     def relu(self):
-        out = ...
+        out = Value(0 if self.data < 0 else self.data, (self,), 'ReLU')
 
         def _backward():
-            self.grad += ...
+            self.grad += (out.data > 0) * out.grad
 
         out._backward = _backward
 
@@ -88,6 +88,7 @@ class Value:
         self.grad = 1
         for v in reversed(topo):
             # YOUR CODE GOES HERE
+            v._backward()
 
     def __neg__(self):  # -self
         return self * -1
@@ -172,13 +173,13 @@ class Tensor:
         return self.data.shape
 
     def argmax(self, dim=None):
-        return ...
+        return np.argmax(self.data)
 
     def max(self, dim=None):
-        return ...
+        return np.max(self.data)
 
     def reshape(self, *args, **kwargs):
-        self.data = ...
+        self.data = self.data.reshape(*args, **kwargs)
         return self
 
     def backward(self):
